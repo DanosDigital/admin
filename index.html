@@ -6,11 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#8c2f39" id="meta-theme-color" />
   <meta name="description" content="OliTopDesign Admin Panel - Manage your traditional Ethiopian clothing collection" />
-  <title>OLITOPDESIGN Admin</title>
+  <title>EthioCloth Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
-  <link rel="manifest" href="/manifest.json" />
   <style>
     :root {
       --primary: #8c2f39;
@@ -54,7 +53,6 @@
       overflow-x: hidden;
     }
 
-    /* App Shell */
     .app-shell {
       display: flex;
       width: 100%;
@@ -304,6 +302,7 @@
     .card h3 {
       font-size: 1.4rem;
       margin-bottom: .35rem;
+      font-weight: 600;
     }
 
     .card p {
@@ -332,6 +331,7 @@
     .section-header h2 {
       color: var(--primary);
       font-size: 1.2rem;
+      font-weight: 600;
     }
 
     /* Table */
@@ -361,6 +361,7 @@
       text-transform: uppercase;
       letter-spacing: .4px;
       font-size: .85rem;
+      font-weight: 600;
     }
 
     tr:hover {
@@ -411,6 +412,7 @@
       display: block;
       margin-bottom: .35rem;
       font-weight: 600;
+      color: var(--text);
     }
 
     .form-control {
@@ -420,6 +422,7 @@
       border-radius: 10px;
       background: transparent;
       color: var(--text);
+      font-size: 1rem;
     }
 
     .form-control:focus {
@@ -434,6 +437,7 @@
       padding: 1rem;
       text-align: center;
       transition: background .2s, border-color .2s;
+      cursor: pointer;
     }
 
     .dropzone.dragover {
@@ -474,6 +478,9 @@
       height: 26px;
       border-radius: 50%;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .progress-bar {
@@ -490,6 +497,73 @@
       width: 0%;
       background: var(--primary);
       transition: width .2s;
+    }
+
+    /* Multiple Images Styles */
+    .multi-image-container {
+      margin-top: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      padding: 1rem;
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .multi-image-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .multi-image-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .multi-image-item {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 100px;
+    }
+
+    .multi-image-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .multi-image-item .remove {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .multi-image-dropzone {
+      border: 2px dashed rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      margin-top: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .multi-image-dropzone:hover {
+      border-color: var(--primary);
+      background-color: rgba(140, 47, 57, 0.05);
     }
 
     /* Modals */
@@ -677,6 +751,11 @@
       .dashboard-cards {
         grid-template-columns: 1fr;
       }
+
+      .main-content {
+        padding: 1rem;
+        padding-top: calc(var(--header-height) + 1rem);
+      }
     }
 
     @media (max-width:576px) {
@@ -687,10 +766,24 @@
       .user-info span {
         display: none;
       }
+
+      .multi-image-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
     }
 
     .hidden {
       display: none !important;
+    }
+
+    .db-setup-section {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -820,7 +913,7 @@
                   <th>Title</th>
                   <th>Description</th>
                   <th>Date</th>
-                  <th>Status</th>
+                  <th>Gallery Type</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -834,21 +927,56 @@
           <div class="section-header">
             <h2>Add New Gallery Items</h2>
           </div>
+
+          <div id="dbSetupNotice" class="db-setup-section hidden">
+            <h3><i class="fas fa-database"></i> Database Setup Required</h3>
+            <p>To enable the horizontal gallery feature, you need to add a <code>multiple_images</code> column to your
+              Supabase database.</p>
+            <p>Run this SQL in your Supabase SQL editor:</p>
+            <pre>ALTER TABLE gallery ADD COLUMN multiple_images text[];</pre>
+            <button class="btn primary" id="checkDbButton">Check Database Again</button>
+          </div>
+
           <form id="addItemForm">
             <div class="form-group"><label for="itemTitle">Title (optional)</label><input type="text" id="itemTitle"
                 class="form-control" placeholder="e.g., Habesha Kemis" /></div>
             <div class="form-group"><label for="itemDescription">Description (optional)</label><textarea
                 id="itemDescription" class="form-control" placeholder="Short description"></textarea></div>
+
+            <!-- Main Image Upload -->
             <div class="form-group">
-              <label>Images</label>
+              <label>Main Image</label>
               <div id="dropzone" class="dropzone">
-                <p><i class="fas fa-cloud-arrow-up"></i> Drag & drop images here or <strong>click to browse</strong></p>
-                <input type="file" id="itemImage" accept="image/*" multiple class="hidden" />
+                <p><i class="fas fa-cloud-arrow-up"></i> Drag & drop main image here or <strong>click to browse</strong>
+                </p>
+                <input type="file" id="itemImage" accept="image/*" class="hidden" />
               </div>
               <div id="previewGrid" class="preview-grid"></div>
-              <div class="progress-bar" id="progressBarContainer" style="display:none">
-                <div class="progress" id="progressBar"></div>
+            </div>
+
+            <!-- Multiple Images Upload -->
+            <div class="form-group" id="multiImageSection">
+              <label>Additional Images (for horizontal gallery)</label>
+              <div class="multi-image-container">
+                <div class="multi-image-header">
+                  <span>Additional images</span>
+                  <button type="button" class="btn secondary" id="addMultiImageBtn">
+                    <i class="fas fa-plus"></i> Add Images
+                  </button>
+                </div>
+                <p class="muted" style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--muted);">
+                  Upload multiple images to create an Instagram-style horizontal gallery
+                </p>
+                <div id="multiImageDropzone" class="multi-image-dropzone">
+                  <p><i class="fas fa-images"></i> Drag & drop multiple images here or click to select</p>
+                  <input type="file" id="multiImageInput" accept="image/*" multiple class="hidden" />
+                </div>
+                <div id="multiImageList" class="multi-image-list"></div>
               </div>
+            </div>
+
+            <div class="progress-bar" id="progressBarContainer" style="display:none">
+              <div class="progress" id="progressBar"></div>
             </div>
             <button type="submit" class="btn primary"><i class="fas fa-plus-circle"></i> Upload</button>
             <p id="formMessage" style="margin-top:.6rem"></p>
@@ -900,6 +1028,9 @@
             </div>
             <div class="form-group"><label>Date Added</label>
               <div id="modalDate"></div>
+            </div>
+            <div class="form-group"><label>Gallery Type</label>
+              <div id="modalGalleryType"></div>
             </div>
           </div>
         </div>
@@ -954,6 +1085,15 @@
     const dropzone = document.getElementById('dropzone');
     const previewGrid = document.getElementById('previewGrid');
 
+    // Multiple images elements
+    const multiImageInput = document.getElementById('multiImageInput');
+    const multiImageDropzone = document.getElementById('multiImageDropzone');
+    const multiImageList = document.getElementById('multiImageList');
+    const addMultiImageBtn = document.getElementById('addMultiImageBtn');
+    const multiImageSection = document.getElementById('multiImageSection');
+    const dbSetupNotice = document.getElementById('dbSetupNotice');
+    const checkDbButton = document.getElementById('checkDbButton');
+
     const formMessage = document.getElementById('formMessage');
     const progressBarContainer = document.getElementById('progressBarContainer');
     const progressBar = document.getElementById('progressBar');
@@ -971,6 +1111,7 @@
     const modalImage = document.getElementById('modalImage');
     const modalDescription = document.getElementById('modalDescription');
     const modalDate = document.getElementById('modalDate');
+    const modalGalleryType = document.getElementById('modalGalleryType');
     const closeModal = document.getElementById('closeModal');
     const modalCloseBottom = document.getElementById('modalCloseBottom');
     const modalEdit = document.getElementById('modalEdit');
@@ -985,7 +1126,9 @@
     let currentEditingId = null;
     let currentImageUrl = null;
     let selectedFiles = [];
+    let multiImageFiles = [];
     let modalItem = null;
+    let hasMultipleImagesColumn = false;
 
     // ====== Utilities ======
     const show = (el) => el.classList.remove('hidden');
@@ -1006,6 +1149,51 @@
     // Date
     currentDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+    // ====== Check Database Schema ======
+    async function checkDatabaseSchema() {
+      try {
+        // Try to insert a test record with multiple_images field
+        const { error } = await supabase
+          .from('gallery')
+          .insert([{
+            title: 'schema_test',
+            image_url: 'test',
+            multiple_images: ['test1', 'test2']
+          }]);
+
+        // If no error, the column exists
+        if (!error) {
+          hasMultipleImagesColumn = true;
+          hide(dbSetupNotice);
+          show(multiImageSection);
+
+          // Clean up the test record
+          await supabase
+            .from('gallery')
+            .delete()
+            .eq('title', 'schema_test');
+        } else {
+          if (error.message.includes('multiple_images')) {
+            hasMultipleImagesColumn = false;
+            show(dbSetupNotice);
+            hide(multiImageSection);
+          } else {
+            // Some other error, assume column exists
+            hasMultipleImagesColumn = true;
+            hide(dbSetupNotice);
+            show(multiImageSection);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking database schema:', err);
+        hasMultipleImagesColumn = false;
+        show(dbSetupNotice);
+        hide(multiImageSection);
+      }
+    }
+
+    checkDbButton.addEventListener('click', checkDatabaseSchema);
+
     // ====== Auth ======
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -1013,6 +1201,7 @@
         hide(loginPage); adminPanel.classList.remove('hidden');
         userAvatar.textContent = session.user.email.charAt(0).toUpperCase();
         userEmail.textContent = session.user.email;
+        await checkDatabaseSchema();
         loadDashboardData(); loadGalleryItems();
       } else {
         show(loginPage); adminPanel.classList.add('hidden');
@@ -1029,7 +1218,9 @@
       else {
         hide(loginPage); adminPanel.classList.remove('hidden');
         userAvatar.textContent = data.user.email.charAt(0).toUpperCase();
-        userEmail.textContent = data.user.email; loadDashboardData(); loadGalleryItems(); notify('Login successful!');
+        userEmail.textContent = data.user.email;
+        await checkDatabaseSchema();
+        loadDashboardData(); loadGalleryItems(); notify('Login successful!');
       }
       loginText.classList.remove('hidden'); loginSpinner.classList.add('hidden'); loginBtn.disabled = false;
     });
@@ -1081,13 +1272,46 @@
 
     // ====== Gallery ======
     async function loadGalleryItems() {
-      const { data, error } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
-      if (error) { notify('Error loading gallery: ' + error.message, true); return; }
+      // Try to select with multiple_images first
+      let { data, error } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
+
+      // If that fails, try without multiple_images
+      if (error && error.message.includes('multiple_images')) {
+        hasMultipleImagesColumn = false;
+        show(dbSetupNotice);
+        hide(multiImageSection);
+
+        // Try a simpler query without the multiple_images column
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('gallery')
+          .select('id, title, description, image_url, created_at')
+          .order('created_at', { ascending: false });
+
+        if (simpleError) {
+          notify('Error loading gallery: ' + simpleError.message, true);
+          return;
+        }
+
+        data = simpleData;
+      } else if (error) {
+        notify('Error loading gallery: ' + error.message, true);
+        return;
+      } else {
+        hasMultipleImagesColumn = true;
+        hide(dbSetupNotice);
+        show(multiImageSection);
+      }
+
       galleryItemsEl.innerHTML = '';
       if (!data || data.length === 0) { galleryItemsEl.innerHTML = '<tr><td colspan="6" style="text-align:center">No items found.</td></tr>'; return; }
+
       data.forEach(item => {
+        const galleryType = hasMultipleImagesColumn && item.multiple_images && item.multiple_images.length > 0
+          ? `<span class="status status-published">Horizontal Gallery</span>`
+          : `<span class="status" style="background:#e3f2fd;color:#1976d2;">Single Image</span>`;
+
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><img src="${item.image_url}" alt="${item.title || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"></td><td>${item.title || '(untitled)'}</td><td>${item.description ? (item.description.substring(0, 50) + (item.description.length > 50 ? '…' : '')) : ''}</td><td>${new Date(item.created_at).toLocaleDateString()}</td><td><span class="status status-published">Published</span></td><td class="actions"><button class="action-btn action-edit" data-id="${item.id}"><i class="fas fa-edit"></i></button><button class="action-btn action-delete" data-id="${item.id}"><i class="fas fa-trash"></i></button></td>`;
+        tr.innerHTML = `<td><img src="${item.image_url}" alt="${item.title || ''}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"></td><td>${item.title || '(untitled)'}</td><td>${item.description ? (item.description.substring(0, 50) + (item.description.length > 50 ? '…' : '')) : ''}</td><td>${new Date(item.created_at).toLocaleDateString()}</td><td>${galleryType}</td><td class="actions"><button class="action-btn action-edit" data-id="${item.id}"><i class="fas fa-edit"></i></button><button class="action-btn action-delete" data-id="${item.id}"><i class="fas fa-trash"></i></button></td>`;
         // open modal on row or image click
         tr.querySelector('td:first-child img').addEventListener('click', () => openModal(item));
         tr.addEventListener('dblclick', () => openModal(item));
@@ -1104,6 +1328,14 @@
       modalImage.src = item.image_url;
       modalDescription.textContent = item.description || '';
       modalDate.textContent = new Date(item.created_at).toLocaleString();
+
+      // Set gallery type
+      if (hasMultipleImagesColumn && item.multiple_images && item.multiple_images.length > 0) {
+        modalGalleryType.textContent = `Horizontal Gallery (${item.multiple_images.length + 1} images)`;
+      } else {
+        modalGalleryType.textContent = 'Single Image';
+      }
+
       galleryModal.style.display = 'flex';
     }
     function closeGalleryModal() { galleryModal.style.display = 'none'; modalItem = null; }
@@ -1116,16 +1348,41 @@
 
     // ====== Edit / Delete ======
     async function editItem(id) {
-      const { data, error } = await supabase.from('gallery').select('*').eq('id', id).single();
+      let query = supabase.from('gallery').select('*').eq('id', id);
+
+      // If we know the column doesn't exist, use a simpler query
+      if (!hasMultipleImagesColumn) {
+        query = query.select('id, title, description, image_url, created_at');
+      }
+
+      const { data, error } = await query.single();
       if (error) { notify('Error fetching item: ' + error.message, true); return; }
       activateSection('addItem');
       itemTitle.value = data.title || '';
       itemDescription.value = data.description || '';
       currentImageUrl = data.image_url; currentEditingId = id;
+
       // Show current image in preview grid
       previewGrid.innerHTML = '';
       const div = document.createElement('div'); div.className = 'preview-item'; div.innerHTML = `<img src="${data.image_url}" alt="Preview"/>`;
       previewGrid.appendChild(div);
+
+      // Show multiple images if they exist
+      multiImageFiles = [];
+      multiImageList.innerHTML = '';
+
+      if (hasMultipleImagesColumn && data.multiple_images && data.multiple_images.length > 0) {
+        // For editing, we'll just show the existing images
+        const infoDiv = document.createElement('div');
+        infoDiv.textContent = `${data.multiple_images.length} additional images exist for this item.`;
+        infoDiv.style.gridColumn = '1 / -1';
+        infoDiv.style.padding = '0.5rem';
+        infoDiv.style.backgroundColor = 'rgba(140, 47, 57, 0.1)';
+        infoDiv.style.borderRadius = '8px';
+        infoDiv.style.textAlign = 'center';
+        multiImageList.appendChild(infoDiv);
+      }
+
       notify('Editing item' + (data.title ? ': ' + data.title : ''));
     }
 
@@ -1133,14 +1390,35 @@
       if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) return;
       try {
         // fetch item for storage path
-        const { data: itemData, error: fetchError } = await supabase.from('gallery').select('*').eq('id', id).single();
+        let query = supabase.from('gallery').select('*').eq('id', id);
+        if (!hasMultipleImagesColumn) {
+          query = query.select('id, title, description, image_url, created_at');
+        }
+
+        const { data: itemData, error: fetchError } = await query.single();
         if (fetchError) throw new Error(fetchError.message);
-        // storage remove
+        // storage remove - main image
         try {
           const url = new URL(itemData.image_url); const pathParts = url.pathname.split('/'); const filePath = pathParts.slice(3).join('/');
           const { error: storageError } = await supabase.storage.from('gallery-images').remove([filePath]);
           if (storageError) console.warn('Storage delete issue:', storageError.message);
         } catch (_) {/* ignore url parse issues */ }
+
+        // storage remove - additional images
+        if (hasMultipleImagesColumn && itemData.multiple_images && itemData.multiple_images.length > 0) {
+          try {
+            const pathsToRemove = [];
+            for (const imageUrl of itemData.multiple_images) {
+              const url = new URL(imageUrl);
+              const pathParts = url.pathname.split('/');
+              const filePath = pathParts.slice(3).join('/');
+              pathsToRemove.push(filePath);
+            }
+            const { error: storageError } = await supabase.storage.from('gallery-images').remove(pathsToRemove);
+            if (storageError) console.warn('Storage delete issue for additional images:', storageError.message);
+          } catch (_) {/* ignore url parse issues */ }
+        }
+
         // db delete
         const { error: deleteError } = await supabase.from('gallery').delete().eq('id', id);
         if (deleteError) throw new Error(deleteError.message);
@@ -1152,7 +1430,14 @@
     }
 
     function resetForm() {
-      addItemForm.reset(); selectedFiles = []; currentEditingId = null; currentImageUrl = null; previewGrid.innerHTML = ''; formMessage.textContent = '';
+      addItemForm.reset();
+      selectedFiles = [];
+      multiImageFiles = [];
+      currentEditingId = null;
+      currentImageUrl = null;
+      previewGrid.innerHTML = '';
+      multiImageList.innerHTML = '';
+      formMessage.textContent = '';
     }
 
     // ====== Drag & drop + previews ======
@@ -1167,68 +1452,184 @@
       });
     }
 
+    function renderMultiImagePreviews() {
+      multiImageList.innerHTML = '';
+
+      multiImageFiles.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        const div = document.createElement('div');
+        div.className = 'multi-image-item';
+        div.innerHTML = `
+    <img src="${url}" alt="Additional image ${index + 1}">
+    <button type="button" class="remove" data-index="${index}">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+        multiImageList.appendChild(div);
+      });
+
+      // Add event listeners to remove buttons
+      document.querySelectorAll('.multi-image-item .remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const index = parseInt(e.currentTarget.getAttribute('data-index'));
+          multiImageFiles.splice(index, 1);
+          renderMultiImagePreviews();
+        });
+      });
+    }
+
+    // Main image handlers
     dropzone.addEventListener('click', () => itemImage.click());
     dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
     dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/')); if (files.length) { selectedFiles.push(...files); renderPreviews(); } });
-    itemImage.addEventListener('change', (e) => { const files = [...e.target.files]; if (files.length) { selectedFiles.push(...files); renderPreviews(); itemImage.value = ''; } });
+    dropzone.addEventListener('drop', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/')); if (files.length) { selectedFiles = files; renderPreviews(); } });
+    itemImage.addEventListener('change', (e) => { const files = [...e.target.files]; if (files.length) { selectedFiles = files; renderPreviews(); itemImage.value = ''; } });
 
-    // ====== Add / Update items (multi-upload; title optional) ======
+    // Multiple images handlers
+    multiImageInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        multiImageFiles = multiImageFiles.concat(files);
+        renderMultiImagePreviews();
+        multiImageInput.value = '';
+      }
+    });
+
+    multiImageDropzone.addEventListener('click', () => {
+      multiImageInput.click();
+    });
+
+    multiImageDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      multiImageDropzone.style.borderColor = 'var(--primary)';
+      multiImageDropzone.style.backgroundColor = 'rgba(140, 47, 57, 0.1)';
+    });
+
+    multiImageDropzone.addEventListener('dragleave', () => {
+      multiImageDropzone.style.borderColor = '';
+      multiImageDropzone.style.backgroundColor = '';
+    });
+
+    multiImageDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      multiImageDropzone.style.borderColor = '';
+      multiImageDropzone.style.backgroundColor = '';
+
+      const files = Array.from(e.dataTransfer.files).filter(file =>
+        file.type.startsWith('image/')
+      );
+
+      if (files.length > 0) {
+        multiImageFiles = multiImageFiles.concat(files);
+        renderMultiImagePreviews();
+      }
+    });
+
+    addMultiImageBtn.addEventListener('click', () => {
+      multiImageInput.click();
+    });
+
+    // ====== Add / Update items ======
     addItemForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       formMessage.style.color = '#1976d2';
       const title = itemTitle.value.trim();
       const description = itemDescription.value.trim();
 
-      // Update single item case
-      if (currentEditingId) {
-        try {
-          // If new images selected, just take the first one to replace
-          if (selectedFiles.length) {
-            const imageFile = selectedFiles[0];
-            const fileExt = imageFile.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
-            const filePath = `gallery/${fileName}`;
-            progressBarContainer.style.display = 'block'; progressBar.style.width = '0%';
-            const { error: uploadError } = await supabase.storage.from('gallery-images').upload(filePath, imageFile, {
-              cacheControl: '3600', upsert: false
-            });
-            if (uploadError) throw new Error(uploadError.message);
-            const { data: urlData } = supabase.storage.from('gallery-images').getPublicUrl(filePath);
-            currentImageUrl = urlData.publicUrl;
-          }
-          const updateData = { title: title || null, description: description || null };
-          if (selectedFiles.length) updateData.image_url = currentImageUrl;
-          const { error: updateError } = await supabase.from('gallery').update(updateData).eq('id', currentEditingId);
-          if (updateError) throw new Error(updateError.message);
-          notify('Item updated successfully!'); formMessage.textContent = 'Item updated successfully!'; formMessage.style.color = '#0c7c59';
-          resetForm(); progressBarContainer.style.display = 'none'; loadDashboardData(); loadGalleryItems(); activateSection('gallery');
-        } catch (err) { notify('Error: ' + err.message, true); formMessage.textContent = 'Error: ' + err.message; progressBarContainer.style.display = 'none'; }
+      // Validate at least one image is selected
+      if (selectedFiles.length === 0) {
+        formMessage.textContent = 'Please select at least a main image.';
+        formMessage.style.color = '#d32f2f';
         return;
       }
 
-      // Create (multi) items
-      if (!selectedFiles.length) { formMessage.textContent = 'Please select at least one image.'; formMessage.style.color = '#d32f2f'; return; }
-      progressBarContainer.style.display = 'block'; progressBar.style.width = '0%';
+      // If multiple images are selected but the column doesn't exist, show notice
+      if (multiImageFiles.length > 0 && !hasMultipleImagesColumn) {
+        formMessage.textContent = 'Please add the multiple_images column to your database first.';
+        formMessage.style.color = '#d32f2f';
+        show(dbSetupNotice);
+        return;
+      }
+
+      progressBarContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+
       try {
-        const uploads = [];
-        let uploaded = 0;
-        for (const imageFile of selectedFiles) {
+        let mainImageUrl = null;
+        const additionalImageUrls = [];
+        let totalFiles = selectedFiles.length + multiImageFiles.length;
+        let processedFiles = 0;
+
+        // Upload main image if selected
+        if (selectedFiles.length > 0) {
+          const imageFile = selectedFiles[0];
           const fileExt = imageFile.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+          const fileName = `${Date.now()}-main-${Math.random().toString(36).slice(2)}.${fileExt}`;
           const filePath = `gallery/${fileName}`;
-          const { error: uploadError } = await supabase.storage.from('gallery-images').upload(filePath, imageFile, { cacheControl: '3600', upsert: false });
+
+          const { error: uploadError } = await supabase.storage
+            .from('gallery-images')
+            .upload(filePath, imageFile, { cacheControl: '3600', upsert: false });
+
           if (uploadError) throw new Error(uploadError.message);
+
           const { data: urlData } = supabase.storage.from('gallery-images').getPublicUrl(filePath);
-          uploads.push({ image_url: urlData.publicUrl, title: title || imageFile.name.replace(/\.[^.]+$/, ''), description: description || null });
-          uploaded++; progressBar.style.width = `${Math.round((uploaded / selectedFiles.length) * 100)}%`;
+          mainImageUrl = urlData.publicUrl;
+          processedFiles++;
+          progressBar.style.width = `${Math.round((processedFiles / totalFiles) * 100)}%`;
         }
-        // bulk insert
-        const { error: insertError } = await supabase.from('gallery').insert(uploads);
+
+        // Upload additional images
+        for (const imageFile of multiImageFiles) {
+          const fileExt = imageFile.name.split('.').pop();
+          const fileName = `${Date.now()}-additional-${Math.random().toString(36).slice(2)}.${fileExt}`;
+          const filePath = `gallery/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('gallery-images')
+            .upload(filePath, imageFile, { cacheControl: '3600', upsert: false });
+
+          if (uploadError) throw new Error(uploadError.message);
+
+          const { data: urlData } = supabase.storage.from('gallery-images').getPublicUrl(filePath);
+          additionalImageUrls.push(urlData.publicUrl);
+          processedFiles++;
+          progressBar.style.width = `${Math.round((processedFiles / totalFiles) * 100)}%`;
+        }
+
+        // Prepare data for insertion
+        const insertData = {
+          title: title || null,
+          description: description || null,
+          image_url: mainImageUrl
+        };
+
+        // Only add multiple_images if we have them and the column exists
+        if (hasMultipleImagesColumn && additionalImageUrls.length > 0) {
+          insertData.multiple_images = additionalImageUrls;
+        }
+
+        // Insert into database
+        const { error: insertError } = await supabase.from('gallery').insert([insertData]);
+
         if (insertError) throw new Error(insertError.message);
-        notify('Items added successfully!'); formMessage.textContent = 'Items added successfully!'; formMessage.style.color = '#0c7c59';
-        resetForm(); progressBarContainer.style.display = 'none'; loadDashboardData(); loadGalleryItems(); activateSection('gallery');
-      } catch (err) { notify('Error: ' + err.message, true); formMessage.textContent = 'Error: ' + err.message; formMessage.style.color = '#d32f2f'; progressBarContainer.style.display = 'none'; }
+
+        notify('Item added successfully!');
+        formMessage.textContent = 'Item added successfully!';
+        formMessage.style.color = '#0c7c59';
+
+        // Reset form
+        resetForm();
+        progressBarContainer.style.display = 'none';
+        loadDashboardData();
+        loadGalleryItems();
+        activateSection('gallery');
+      } catch (err) {
+        notify('Error: ' + err.message, true);
+        formMessage.textContent = 'Error: ' + err.message;
+        formMessage.style.color = '#d32f2f';
+        progressBarContainer.style.display = 'none';
+      }
     });
 
     // ====== Refresh gallery ======
@@ -1238,7 +1639,7 @@
     backToGallery.addEventListener('click', () => activateSection('gallery'));
     addMore.addEventListener('click', () => activateSection('addItem'));
 
-    // ====== Service Worker (kept minimal) ======
+    // ====== Service Worker ======
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(() => { });
@@ -1249,6 +1650,5 @@
     checkAuth();
   </script>
 </body>
-
 
 </html>
